@@ -27,6 +27,9 @@ def dice(im1, im2):
     if im1.shape != im2.shape:
         raise ValueError("Shape mismatch: im1 and im2 must have the same shape.")
 
+    if im1.sum() + im2.sum() == 0:
+        return 1.0
+
     # Compute Dice coefficient
     intersection = np.logical_and(im1, im2)
 
