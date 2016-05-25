@@ -13,7 +13,7 @@ args = parser.parse_args()
 
 # Inits
 data_dict = {}
-
+patch_size = (416,416)
 
 print("Loading data into memory...")
 
@@ -24,10 +24,19 @@ for dirname, dirnames, filenames in os.walk(args.images_directory_path):
     # print path to all filenames.
     for filename in filenames:
         file_path = os.path.join(dirname, filename)
-        img = plt.imread(file_path)
+        image = plt.imread(file_path)
+        # trim to square
+        difference = (image.shape[1] - image.shape[0])/2
+        image = np.true_divide(image[:, difference:image.shape[1]-difference], np.float32(255.))
+
+        # trim the difference
+        x_diff = (image.shape[0] - patch_size[0])/2
+        y_diff = (image.shape[1] - patch_size[1])/2
+        image = image[x_diff:image.shape[0]-x_diff, y_diff:image.shape[1]-y_diff]
+
         # strip out tiff ending
         filename = filename[:-4]
-        data_dict[filename] = img
+        data_dict[filename] = image
         pbar.update(i)
         i += 1
 pbar.finish()

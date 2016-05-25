@@ -1,5 +1,5 @@
 # Any results you write to the current directory are saved as output.
-def RunLengthEncoder(img, order='F', format=True):
+def encode_run_length(img, order='F', format=True):
     """
     Taken from: https://www.kaggle.com/alexlzzz/ultrasound-nerve-segmentation/rl-encoding
     img is binary mask image, shape (r,c)
