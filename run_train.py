@@ -18,7 +18,7 @@ all_image_base_names = [ x for x in data.keys() if "mask" not in x ]
 shuffle(all_image_base_names)
 
 patch_size = (416, 416)
-num_epochs = 5
+num_epochs = 100
 batch_size = 16
 
 network, train_fn, val_fn = compose_functions(patch_size)
@@ -38,22 +38,22 @@ for epoch in range(0, num_epochs):
         image = np.array([data[x] for x in img_name_batch])
         image_mask = np.array([data["{}_mask".format(img_name)] for img_name in img_name_batch]) 
 
-        image = np.reshape(image, (img_name_batch.shape[0], 1, image.shape[1], image.shape[2]))
-        image_mask = np.reshape(image, (img_name_batch.shape[0], 1, image_mask.shape[1], image_mask.shape[2]))
-
         if index < start_validation_index:
             err = train_fn(image, image_mask)
             train_errs.append(err)
         else:
             err, prediction = val_fn(image, image_mask)
-            prediction = np.reshape(prediction, (img_name_batch.shape[0], patch_size[0], patch_size[1]))
-            image_mask = np.reshape(image_mask, (img_name_batch.shape[0], patch_size[0], patch_size[1]))
+            prediction[prediction > .5] = 1.
+            prediction[prediction <= .5] = 0.
+            #prediction = np.reshape(prediction, (img_name_batch.shape[0], patch_size[0], patch_size[1]))
+            #image_mask = np.reshape(image_mask, (img_name_batch.shape[0], patch_size[0], patch_size[1]))
             dices.append(dice(prediction, image_mask))
             validation_errs.append(err)
         index += 1# img_name_batch.shape[0] 
 
     np.savez('model.npz', *lasagne.layers.get_all_param_values(network))
-    import pdb; pdb.set_trace() 
+    time.sleep(60)
+    #import pdb; pdb.set_trace() 
 
     print("Train ave loss: {}".format(np.average(train_errs)))
     print("Validation ave loss: {}".format(np.average(validation_errs)))

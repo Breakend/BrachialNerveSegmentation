@@ -15,24 +15,21 @@ import theano.tensor as T
 from lasagne.layers.normalization import batch_norm
 import lasagne
 
-def jaccard_distance(prediction, target):
-    rounded_prediction = T.iround(prediction)
-    rounded_truth = T.iround(target)
+def jaccard_distance(rounded_prediction, rounded_truth):
     n = T.cast(T.sum(rounded_prediction * rounded_truth), 'float32')
     a = T.cast(T.sum(rounded_prediction), 'float32')
     b = T.cast(T.sum(rounded_truth), 'float32')
     z = a + b - n
     
-    return T.switch(T.or_(T.eq(a + b, 0.), T.eq(z, 0.)), 0.0, 1.0 - (n / z))
+    return T.switch(T.or_(T.eq(a + b, 0.), T.eq(z, 0.)), 0.0, 1.0 - ((n + 10.) / (z + 10.)))
 
-def inverse_dice(prediction, target):
-    #rounded_prediction = T.iround(prediction)
-    #rounded_truth = T.iround(target)
+def inverse_dice(rounded_prediction, rounded_truth):
+    #rounded_truth = T.iround(rounded_truth)
     #n = T.cast(T.sum(rounded_prediction & rounded_truth), 'float32')
     #a = T.cast(T.sum(rounded_prediction), 'float32')
     #b = T.cast(T.sum(rounded_truth), 'float32')
+    a = -2*(T.sum(rounded_prediction*rounded_truth)+10)/(T.sum(rounded_prediction) + T.sum(rounded_truth) + 10)
     #return -2.0 * ( (n + 100.) / (a + b + 100.))
-    return -2*(T.sum(prediction*target) + 100.)/(T.sum(prediction) + T.sum(target)+100.)
     
 
 def build_cnn(patch_size, input_var=None):
@@ -63,13 +60,14 @@ def compose_prediction_functions(patch_size, scope="default"):
     target_var = T.ftensor4(scope + 'targets')
     network = build_cnn(patch_size, input_var)
     test_prediction = lasagne.layers.get_output(network, deterministic=True)
-    test_prediction = T.iround(test_prediction)
+    #test_prediction = T.iround(test_prediction)
     val_fn = theano.function([input_var], [test_prediction])
     return network, val_fn
 
 def compose_functions(patch_size, scope="default"):
     # Prepare Theano variables for inputs and targets
     input_var = T.ftensor4(scope + 'inputs')
+    #TODO: change labels to just be 1
     target_var = T.ftensor4(scope + 'targets')
     network = build_cnn(patch_size, input_var)
 
@@ -77,8 +75,8 @@ def compose_functions(patch_size, scope="default"):
     # to minimize (for our multi-class problem, it is the cross-entropy loss):
     prediction = lasagne.layers.get_output(network)
     #prediction = prediction.reshape((1, prediction.shape[0]))
-    loss = inverse_dice(prediction, target_var)
-    #loss = jaccard_distance(prediction, target_var)
+    #loss = inverse_dice(prediction, target_var)
+    loss = jaccard_distance(prediction, target_var)
     # loss = loss.mean()
     # We could add some weight decay as well here, see lasagne.regularization.
 
@@ -86,16 +84,15 @@ def compose_functions(patch_size, scope="default"):
     # parameters at each training step. Here, we'll use Stochastic Gradient
     # Descent (SGD) with Nesterov momentum, but Lasagne offers plenty more.
     params = lasagne.layers.get_all_params(network, trainable=True)
-    updates = lasagne.updates.adam(loss, params, learning_rate=.003)
+    updates = lasagne.updates.nesterov_momentum(loss, params, learning_rate=.003)
 
     # Create a loss expression for validation/testing. The crucial difference
     # here is that we do a deterministic forward pass through the network,
     # disabling dropout layers.
 
     test_prediction = lasagne.layers.get_output(network, deterministic=True)
-    test_prediction = T.iround(test_prediction)
-    test_loss = inverse_dice(test_prediction, target_var)
-    #test_loss = jaccard_distance(test_prediction, target_var)
+    #test_loss = inverse_dice(test_prediction, target_var)
+    test_loss = jaccard_distance(test_prediction, target_var)
 
     # Compile a function performing a training step on a mini-batch (by giving
     # the updates dictionary) and returning the corresponding training loss:
