@@ -39,8 +39,8 @@ prediction[prediction <= .5] = 0.
 
 kernel = np.ones((5,5), np.uint8)
 opened = cv2.morphologyEx(prediction, cv2.MORPH_OPEN, kernel)
-opened = cv2.erode(opened,kernel,iterations = 1)
-opened = cv2.dilate(opened,kernel,iterations = 1)
+opened = cv2.erode(opened,kernel,iterations = 3)
+opened = cv2.dilate(opened,kernel,iterations = 2)
 convex_hull = None
 if len(np.transpose(np.nonzero(opened))) > 0:
     convex_hull = ConvexHull(np.transpose(np.nonzero(opened)))

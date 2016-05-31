@@ -19,7 +19,7 @@ shuffle(all_image_base_names)
 
 patch_size = (416, 416)
 num_epochs = 100
-batch_size = 16
+batch_size = 2
 
 network, train_fn, val_fn = compose_functions(patch_size)
 
@@ -35,6 +35,9 @@ for epoch in range(0, num_epochs):
     validation_errs = []
     train_errs = []
     for img_name_batch, i in izip(minibatch(all_image_base_names, batch_size=batch_size), tqdm(range(len(all_image_base_names)/batch_size + len(all_image_base_names)%batch_size ))):
+        # Cool of the gpu a little
+        if i % 500 == 0:
+            time.sleep(60)
         image = np.array([data[x] for x in img_name_batch])
         image_mask = np.array([data["{}_mask".format(img_name)] for img_name in img_name_batch]) 
 
@@ -52,9 +55,10 @@ for epoch in range(0, num_epochs):
         index += 1# img_name_batch.shape[0] 
 
     np.savez('model.npz', *lasagne.layers.get_all_param_values(network))
-    time.sleep(60)
     #import pdb; pdb.set_trace() 
 
     print("Train ave loss: {}".format(np.average(train_errs)))
     print("Validation ave loss: {}".format(np.average(validation_errs)))
     print("Average dice: {}".format(np.average(dices)))
+    # Cool off the gpu after an epoch
+    time.sleep(200)

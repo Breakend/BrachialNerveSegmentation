@@ -34,12 +34,12 @@ for img_name, i in izip(iter(all_image_base_names), tqdm(range(len(all_image_bas
 
     prediction = val_fn(image)
     prediction = np.reshape(prediction, patch_size)
-    prediction[prediction < .5] = 0.
-    prediction[prediction >= .5] = 1.0
+    prediction[prediction < .8] = 0.
+    prediction[prediction >= .8] = 1.0
     kernel = np.ones((5,5), np.uint8)
     opened = cv2.morphologyEx(prediction, cv2.MORPH_OPEN, kernel)
     opened = cv2.erode(opened,kernel,iterations = 3)
-    opened = cv2.dilate(opened,kernel,iterations = 1)
+    opened = cv2.dilate(opened,kernel,iterations = 2)
     convex_hull = None
     if len(np.transpose(np.nonzero(opened))) > 0:
         convex_hull = ConvexHull(np.transpose(np.nonzero(opened)))
