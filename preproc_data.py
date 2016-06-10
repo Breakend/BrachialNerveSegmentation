@@ -58,20 +58,21 @@ for dirname, dirnames, filenames in os.walk(args.images_directory_path):
     pbar.start()
     # print path to all filenames.
     for filename in filenames:
+        import pdb; pdb.set_trace()
         file_path = os.path.join(dirname, filename)
         untrimmed = image = plt.imread(file_path)
         untrimmed = np.reshape(untrimmed, (1, untrimmed.shape[0], untrimmed.shape[1]))
 
         image = trim_n_stuff(image)
 
-        if "_mask" not in filename:
+        if "mask" not in filename:
             image_mask_path = os.path.join(dirname, filename[:-4] + "_mask.tif")
             image_mask = plt.imread(image_mask_path)
             image_mask = np.reshape(image_mask, (1, image_mask.shape[0], image_mask.shape[1]))
             image_rotated, image_mask_rotated = rotation_augmentation(untrimmed, image_mask, 15)
-            image_shifted, image_mask_shifted = shift_augmentation(untrimmed, image_mask, .1, .1) 
+            image_shifted, image_mask_shifted = shift_augmentation(untrimmed, image_mask, .05, .05) 
             data_dict[filename[:-4]+"_rotated"] = trim_n_stuff(np.reshape(image_rotated, (image_rotated.shape[1], image_rotated.shape[2])))
-            data_dict[filename[:-4]+"_rotated_mask"] = trim_n_stuff(np.reshape(image_mask_rotated, (image_rotated.shape[1], image_rotated.shape[2])))
+            data_dict[filename[:-4]+"_rotated_mask"] = trim_n_stuff(np.reshape(image_mask_rotated, (image_mask_rotated.shape[1], image_mask_rotated.shape[2])))
             data_dict[filename[:-4]+"_shifted"] = trim_n_stuff(np.reshape(image_shifted, (image_rotated.shape[1], image_rotated.shape[2])))
             data_dict[filename[:-4]+"_shifted_mask"] = trim_n_stuff(np.reshape(image_mask_shifted, (image_rotated.shape[1], image_rotated.shape[2])))
 

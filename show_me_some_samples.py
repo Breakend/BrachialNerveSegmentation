@@ -10,8 +10,10 @@ import csv
 from scipy.spatial import ConvexHull
 import os
 import random
+from scipy.misc import imresize
 
 patch_size = (416,416)
+reduced_patch_size = (416,416)
 
 network, val_fn = compose_prediction_functions(patch_size)
 
@@ -27,15 +29,29 @@ index = 0
 predictions = {}
 # TODO: move all data modification to preprocessing
 # TODO: minibatch
+import pdb; pdb.set_trace()
 img_name = random.choice(all_image_base_names)
 image = data[img_name]
 ground_truth = data[img_name + "_mask"]
 image = np.reshape(image, (1, 1, patch_size[0], patch_size[1]))
+imgs_p = np.ndarray((image.shape[0], image.shape[1], reduced_patch_size[0], reduced_patch_size[1]), dtype=np.float32)
+for i in range(image.shape[0]):
+    imgs_p[i][0][:][:] = imresize(image[i][0], reduced_patch_size, interp='cubic')
+image = imgs_p / 255.
 
 prediction = val_fn(image)
-prediction = np.reshape(prediction[0], patch_size)
+prediction = prediction[0]
+#prediction = cv2.resize(prediction, patch_size)
+prediction_p = np.ndarray((image.shape[0], image.shape[1], patch_size[0], patch_size[1]), dtype=np.float32)
+for i in range(image.shape[0]):
+    prediction_p[i][0][:][:] = imresize(prediction[i][0], patch_size, interp='cubic')
+
+prediction = prediction_p
+
 prediction[prediction > .5] = 1.
 prediction[prediction <= .5] = 0.
+
+prediction = np.reshape(prediction, patch_size)
 
 kernel = np.ones((5,5), np.uint8)
 opened = cv2.morphologyEx(prediction, cv2.MORPH_OPEN, kernel)
@@ -56,6 +72,9 @@ if len(np.transpose(np.nonzero(opened))) > 0:
 if convex_hull:
     print("Simplices: {}".format(convex_hull.simplices.shape))
     print("Area: {}".format(convex_hull.area))
+
+prediction = np.pad(prediction, (((420-patch_size[1])/2, (420-patch_size[1])/2), ((580-patch_size[0])/2, (580-patch_size[0])/2)), 'constant', constant_values=0)
+opened = np.pad(opened, (((420-patch_size[1])/2, (420-patch_size[1])/2), ((580-patch_size[0])/2, (580-patch_size[0])/2)), 'constant', constant_values=0)
 
 opened *= 255
 prediction *= 255

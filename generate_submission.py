@@ -9,6 +9,7 @@ import lasagne
 import csv
 import os
 import cv2
+from scipy.misc import imresize
 
 patch_size = (416,416)
 
@@ -31,11 +32,18 @@ predictions = {}
 for img_name, i in izip(iter(all_image_base_names), tqdm(range(len(all_image_base_names)))):
     image = data[img_name]
     image = np.reshape(image, (1,1, image.shape[0], image.shape[1]))
+    imgs_p = np.ndarray((image.shape[0], image.shape[1], patch_size[0], patch_size[1]), dtype=np.float32)
+    for i in range(image.shape[0]):
+        imgs_p[i][0][:][:] = imresize(image[i][0], patch_size, interp='cubic')
+
+    image = imgs_p / 255.
 
     prediction = val_fn(image)
+    prediction = prediction[0]
     prediction = np.reshape(prediction, patch_size)
-    prediction[prediction < .8] = 0.
-    prediction[prediction >= .8] = 1.0
+    prediction = imresize(prediction, patch_size, interp='cubic')
+    prediction[prediction < .5] = 0.
+    prediction[prediction >= .5] = 1.0
     kernel = np.ones((5,5), np.uint8)
     opened = cv2.morphologyEx(prediction, cv2.MORPH_OPEN, kernel)
     opened = cv2.erode(opened,kernel,iterations = 3)
@@ -51,8 +59,7 @@ for img_name, i in izip(iter(all_image_base_names), tqdm(range(len(all_image_bas
             opened = mask
         else:
             opened = np.zeros_like(opened)
-
-    predictions[img_name] = opened
+    predictions[img_name] = np.pad(prediction, (((420-patch_size[1])/2, (420-patch_size[1])/2), ((580-patch_size[0])/2, (580-patch_size[0])/2)), 'constant', constant_values=0)
     
 # write to submission file
 print('Writing submission to file...')
