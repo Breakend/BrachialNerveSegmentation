@@ -1,3 +1,10 @@
 venv/
+raw/
+img/
 *.npz
 *.pyc
+submission.csv
+*.png
+unet.hdf5*
+*.npy
+
